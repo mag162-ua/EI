@@ -1,16 +1,35 @@
-#include <iostream>
-#include "../include/tokenizador.h"
-#include <chrono>
-
-using namespace std;
-
-int main(){
-    auto inicio = std::chrono::steady_clock::now();
-    string delimiter = "@/@:.__";
-    Tokenizador a(delimiter,true,"hola muy buenas");
-    auto fin = std::chrono::steady_clock::now();
-
-    auto duracion = std::chrono::duration_cast<std::chrono::microseconds>(fin - inicio);
-
-    std::cout << "La funcion tardo: " << duracion.count() << " microsegundos." << std::endl;
+#include <iostream>  
+#include <string> 
+#include <list>  
+#include <sys/resource.h> 
+#include "../include/tokenizador.h" 
+ 
+using namespace std; 
+ 
+double getcputime(void) {  
+struct timeval tim;         
+struct rusage ru;         
+getrusage(RUSAGE_SELF, &ru);         
+tim=ru.ru_utime;         
+double t=(double)tim.tv_sec + (double)tim.tv_usec / 1000000.0;         
+tim=ru.ru_stime;         
+t+=(double)tim.tv_sec + (double)tim.tv_usec / 1000000.0;         
+return t;  
+} 
+ 
+int main() { 
+long double aa=getcputime(); 
+ 
+Tokenizador a("\t ,;:.-+/*_`'{}[]()!?&#\"\\<>", true, true); 
+string frase = "1.2 2.3 u.v.a http://uacloud.es abc ftp:pinga.ua 3333";
+list<string> tokens;
+a.Tokenizar(frase, tokens);
+for (const string& token : tokens) {
+    cout << token << endl;
 }
+//a.TokenizarListaFicheros("listaFicheros.txt");  // TODO EL CORPUS 
+ 
+cout << "Ha tardado " << getcputime() - aa << " segundos" << endl; 
+return 0;
+} 
+ 

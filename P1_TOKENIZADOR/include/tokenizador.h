@@ -4,8 +4,19 @@
 #include <string>
 #include <list>
 #include <ostream>
+#include <unordered_map>
+#include <unordered_set>
 
 using namespace std;
+
+enum casoEspecial{
+    URL,
+    DECIMAL,
+    EMAIL,
+    ACRONIMO,
+    MULTIPALABRA,
+    NINGUNO
+    };
 
 class Tokenizador {
     friend ostream& operator<<(ostream&, const Tokenizador&);	 
@@ -52,13 +63,13 @@ class Tokenizador {
         void CasosEspeciales (const bool& nuevoCasosEspeciales);
         // Cambia la variable privada "casosEspeciales" 
 
-        bool CasosEspeciales ();
+        bool CasosEspeciales () const;
         // Devuelve el contenido de la variable privada "casosEspeciales" 
 
         void PasarAminuscSinAcentos (const bool& nuevoPasarAminuscSinAcentos);
         // Cambia la variable privada "pasarAminuscSinAcentos". Atención al formato de codificación del corpus (comando "file" de Linux). Para la corrección de la práctica se utilizará el formato actual (ISO-8859). 
 
-        bool PasarAminuscSinAcentos ();
+        bool PasarAminuscSinAcentos () const;
         // Devuelve el contenido de la variable privada "pasarAminuscSinAcentos"
 
 
@@ -71,6 +82,18 @@ class Tokenizador {
 
         bool pasarAminuscSinAcentos;
         // Si true pasará el token a minúsculas y quitará acentos, antes de realizar la tokenización
-};
+
+        //unordered_map<char,int> dicc_delimitadores; // Almacena los delimitadores para mejorar la eficiencia de la tokenización. El valor del map no se utilizará, solo se usará para comprobar si un caracter es delimitador o no (si el caracter no existe en el map, no es delimitador; si existe, es delimitador)
+
+        unordered_set<char> dicc_delimitadores; // Almacena los delimitadores para mejorar la eficiencia de la tokenización. El valor del set no se utilizará, solo se usará para comprobar si un caracter es delimitador o no (si el caracter no existe en el set, no es delimitador; si existe, es delimitador)
+
+        //unordered_set<char> dicc_noEspeciales; // Almacena los caracteres que no son casos especiales para mejorar la eficiencia de la tokenización. El valor del set no se utilizará, solo se usará para comprobar si un caracter es caso especial o no (si el caracter no existe en el set, es caso especial; si existe, no es caso especial)
+
+        //enum casoEspecial casosEspecialesDetectados; // Almacena los casos especiales detectados en la tokenización. Se utilizará para mejorar la eficiencia de la tokenización, ya que si no se han detectado casos especiales, no se comprobará si un token es caso especial o no, sino que se considerará que no lo es (si el token contiene un caracter que no es delimitador ni caso especial, se considerará que el token es un caso especial)
+
+        enum casoEspecial analisisCasosEspeciales (const string& str) const; // Analiza la cadena de entrada para detectar los casos especiales que contiene y almacenarlos en casosEspecialesDetectados. Se utilizará para mejorar la eficiencia de la tokenización, ya que si no se han detectado casos especiales, no se comprobará si un token es caso especial o no, sino que se considerará que no lo es (si el token contiene un caracter que no es delimitador ni caso especial, se considerará que el token es un caso especial)
+
+        
+    };
 
 #endif
