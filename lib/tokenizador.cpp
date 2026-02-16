@@ -16,28 +16,31 @@ ostream& operator<<(ostream& os, const Tokenizador& t){
 }
 
 Tokenizador::Tokenizador (const string& delimitadoresPalabra, const bool& kcasosEspeciales, const bool& minuscSinAcentos){	
-    // Inicializa delimiters a delimitadoresPalabra filtrando que no se introduzcan delimitadores repetidos (de izquierda a derecha, en cuyo caso se eliminarían los que hayan sido repetidos por la derecha); casosEspeciales a kcasosEspeciales; pasarAminuscSinAcentos a minuscSinAcentos
+    // Inicializa delimiters a delimitadoresPalabra filtrando que no se introduzcan delimitadores repetidos (de izquierda a derecha, en cuyo caso se eliminar?an los que hayan sido repetidos por la derecha); casosEspeciales a kcasosEspeciales; pasarAminuscSinAcentos a minuscSinAcentos
+    this->delimiters = "";
     DelimitadoresPalabra(delimitadoresPalabra);
     this->casosEspeciales = kcasosEspeciales;
     PasarAminuscSinAcentos(minuscSinAcentos);
 }
 
 Tokenizador::Tokenizador (const Tokenizador& token){
-    this->delimiters = token.delimiters;
+    this->delimiters = "";
+    this->DelimitadoresPalabra(token.DelimitadoresPalabra());
     this->casosEspeciales = token.casosEspeciales;
     this->pasarAminuscSinAcentos = token.pasarAminuscSinAcentos;
 }
 
 Tokenizador::Tokenizador (){	
-    // Inicializa delimiters=",;:.-/+*\\ '\"{}[]()<>¡!¿?&#=\t@"; casosEspeciales a true; pasarAminuscSinAcentos a false
-    this->delimiters = ",;:.-/+*\\ '\"{}[]()<>¡!¿?&#=\t@";
+    // Inicializa delimiters=",;:.-/+*\\ '\"{}[]()<>?!??&#=\t@"; casosEspeciales a true; pasarAminuscSinAcentos a false
+    this->delimiters = "";
+    this->DelimitadoresPalabra(",;:.-/+*\\ '\"{}[]()<>?!??&#=\t@");
     this->casosEspeciales = true;
     this->pasarAminuscSinAcentos = false;
 }
 
 Tokenizador::~Tokenizador (){
 	// Pone delimiters=""
-    this->delimiters = " ";
+    this->delimiters = "";
     this->casosEspeciales = false;
     this->pasarAminuscSinAcentos = false;
 }
@@ -50,12 +53,26 @@ Tokenizador& Tokenizador::operator= (const Tokenizador& token){
 }
 
 string Tokenizador::tratar_URL(const string& token) const{
-    // Trata el caso especial de las URLs, detectando los límites correctamente.
+
+    //cout << "Tratando URL: " << token << endl;
+
+    size_t prefix_len = 0;
+    if(token.find("https:") == 0) prefix_len = 6;
+    else if(token.find("http:") == 0) prefix_len = 5;
+    else if(token.find("ftp:") == 0) prefix_len = 4;
+    
+    if (prefix_len == 0 || token.size() <= prefix_len){
+        //cout << "No es una URL válida: " << token << endl;
+        return "";
+    }
+    
+    //cout << "Prefijo: " << prefix_len << endl;
+    // Trata el caso especial de las URLs, detectando los l?mites correctamente.
     // Las URLs terminan cuando se encuentran:
     // - Un delimitador que NO sea de los especiales "_:/.?&-=#@"
     // - Un espacio en blanco
-    // Los delimitadores especiales de URL están permitidos dentro de la URL
-    cout << "Tratando URL: " << token << endl;
+    // Los delimitadores especiales de URL est?n permitidos dentro de la URL
+    //cout << "Tratando URL: " << token << endl;
     unordered_set<char> url_special_delimiters = {'_', ':', '/', '.', '?', '&', '-', '=', '#', '@'};
     
     size_t pos_fin = string::npos;
@@ -83,25 +100,36 @@ string Tokenizador::tratar_URL(const string& token) const{
     if (pos_fin == string::npos){
         pos_fin = token.size();
     }
-    
+    //cout << "Tratado URL: " << " -> " << string(token.data(), pos_fin) << endl;
     return string(token.data(), pos_fin); // Se devuelve la URL limpia, sin los delimitadores que pueda contener al final
 }
 
 string Tokenizador::tratar_DECIMAL(const string& token) const{
-    // Trata el caso especial de los números decimales, detectando los límites correctamente.
-    // Los números decimales terminan cuando se encuentran:
+    // Trata el caso especial de los n?meros decimales, detectando los l?mites correctamente.
+    // Los n?meros decimales terminan cuando se encuentran:
     // - Un delimitador que NO sea un punto o una coma
     // - Un espacio en blanco
-    // Los puntos y comas están permitidos como separador decimal (solo uno)
+    // Los puntos y comas est?n permitidos como separador decimal (solo uno)
     
-    size_t pos_fin = token.size();
+    size_t pos_dec = token.find_first_of(this->DECIMAL_DELIMITERS);
+
+    if(pos_dec != string::npos){
+        // Si el punto decimal est? al final de la cadena o no est? precedido por un d?gito, no es un decimal
+        if (pos_dec > 0 && pos_dec < token.size() - 1){
+            if (!isdigit(token[pos_dec - 1]) || !isdigit(token[pos_dec + 1])){
+                return "";
+            }
+        }
+    }
+
+    size_t pos_fin = string::npos;
     bool has_decimal_sep = false; // Indica si ya hemos encontrado un separador decimal
     
-    // Iterar a través del token para encontrar el final del número decimal
+    // Iterar a trav?s del token para encontrar el final del n?mero decimal
     for (size_t i = 0; i < token.size(); i++){
         char c = token[i];
         
-        // Si es un dígito, continuamos
+        // Si es un d?gito, continuamos
         if (isdigit(c)){
             continue;
         }
@@ -114,18 +142,114 @@ string Tokenizador::tratar_DECIMAL(const string& token) const{
         
         // Si es un delimitador del sistema
         if (this->dicc_delimitadores.find(c) != this->dicc_delimitadores.end()){
-            // Si es otro delimitador, termina aquí
+            // Si es otro delimitador, termina aqu?
             pos_fin = i;
             break;
         }
         else{
-            // Si es otro carácter que no es dígito ni delimitador ni separador decimal, termina aquí
+            // Si es otro car?cter que no es d?gito ni delimitador ni separador decimal, termina aqu?
             pos_fin = i;
             break;
         }
     }
-    cout << "Tratado DECIMAL: " << token << " -> " << string(token.data(), pos_fin) << endl;
-    return string(token.data(), pos_fin); // Se devuelve el número decimal limpio
+    //cout << "Tratado DECIMAL: " << token << " -> " << string(token.data(), pos_fin) << endl;
+    return string(token.data(), pos_fin); // Se devuelve el n?mero decimal limpio
+}
+
+string Tokenizador::tratar_EMAIL(const string& token) const{
+    // Trata el caso especial de los emails, detectando los l?mites correctamente.
+    // Los emails terminan cuando se encuentran:
+    // - Un delimitador que NO sea un punto, guion o guion bajo
+    // - Un espacio en blanco
+    // Los puntos, guiones y guiones bajos est?n permitidos dentro del email
+    size_t pos_espacio = token.find_first_of(" ");
+    size_t pos_at = token.find("@");
+    if(pos_at != string::npos){ // Si hay un '@' y est? antes de cualquier espacio (o no hay espacios)
+        // Verificar que el indicador "@" est? rodeado de caracteres que no sean delimitadores
+        if (pos_espacio != string::npos && pos_espacio < pos_at){
+            return "";
+        }
+        if (pos_at == 0 || pos_at >= token.size() - 1){
+            return "";
+        }
+    }
+
+    cout << "Tratando EMAIL: " << token << endl;
+    size_t pos_fin = token.size();
+    bool has_a = false; // Indica si ya hemos encontrado el caracter '@'
+    
+    // Iterar a trav?s del token para encontrar el final del email
+    for (size_t i = 0; i < token.size(); i++){
+        char c = token[i];
+        
+        // Si es un d?gito o letra, continuamos
+        
+        // Si es un punto, guion o guion bajo, continuamos
+        if (c == '.' || c == '-' || c == '_' ){
+            continue;
+        }
+
+        if (c == '@' && !has_a){
+            has_a = true;
+            continue; // Permitimos un solo '@' en el email
+        }
+        
+        // Si es un delimitador del sistema, termina aqu?
+        if (this->dicc_delimitadores.find(c) != this->dicc_delimitadores.end()){
+            cout << "Delimitador encontrado en email: '" << c << "' en la posicin " << i << endl;
+            pos_fin = i;
+            break;
+        }
+        /*else{
+            // Si es otro car?cter que no es d?gito ni letra ni delimitador ni punto/guion/guion bajo, termina aqu?
+            cout << "Car?cter no permitido encontrado en email: '" << c << "' en la posici?n " << i << endl;
+            pos_fin = i;
+            break;
+        }*/
+    }
+    
+    //cout << "Tratado EMAIL: " << token << " -> " << string(token.data(), pos_fin) << endl;
+    cout << "Tratado EMAIL: " << token << " -> " << string(token.data(), pos_fin) << endl;
+    return string(token.data(), pos_fin); // Se devuelve el email limpio
+}
+
+string Tokenizador::tratar_ACRONIMO(const string& token) const{
+    // Trata el caso especial de los acr?nimos, detectando los l?mites correctamente.
+    // Los acr?nimos terminan cuando se encuentran:
+    // - Un delimitador que NO sea un punto
+    // - Un espacio en blanco
+    // Los puntos est?n permitidos dentro del acr?nimo (por ejemplo, "U.S.A.")
+    
+    size_t pos_fin = token.size();
+    size_t pos_punto = 0;
+    
+    // Iterar a trav?s del token para encontrar el final del acr?nimo
+    for (size_t i = 0; i < token.size(); i++){
+        char c = token[i];
+        
+        // Si es un d?gito o letra, continuamos
+        
+        // Si es un punto, continuamos
+        if (c == '.' && i > pos_punto){
+            pos_punto = i;
+            continue;
+        }
+        
+        // Si es un delimitador del sistema, termina aqu?
+        if (this->dicc_delimitadores.find(c) != this->dicc_delimitadores.end()){
+            cout << "Delimitador encontrado en acr?nimo: '" << c << "' en la posicin " << i << "  "<< pos_punto << endl;
+            pos_fin = i;
+            break;
+        }
+        else{
+            // Si es otro car?cter que no es d?gito ni letra ni delimitador ni punto, termina aqu?
+            cout << "Delimitador encontrado en acr?nimo: '" << c << "' en la posicin " << i << "  "<< pos_punto << endl;
+            pos_fin = i;
+            break;
+        }
+    }
+    
+    return string(token.data(), pos_fin); // Se devuelve el acr?nimo limpio
 }
 
 string Tokenizador::minuscSinAcentos(const string& str) const{
@@ -133,60 +257,53 @@ string Tokenizador::minuscSinAcentos(const string& str) const{
     for (size_t i = 0; i < s.length(); ++i) {
         unsigned char& c = (unsigned char&)s[i];
 
-        // 1. Convertir CUALQUIER letra mayúscula a minúscula
-        // Rango A-Z estándar (ASCII)
+        // 1. Convertir CUALQUIER letra may?scula a min?scula
+        // Rango A-Z est?ndar (ASCII)
         if (c >= 0x41 && c <= 0x5A) {
             c += 32;
         }
-        // Rango extendido ISO-8859-1 (Mayúsculas acentuadas y especiales) 
-        // De 0xC0 (À) a 0xDE (Þ), excluyendo 0xD7 (signo de multiplicación) 
+        // Rango extendido ISO-8859-1 (May?sculas acentuadas y especiales) 
+        // De 0xC0 (?) a 0xDE (?), excluyendo 0xD7 (signo de multiplicaci?n) 
         else if (c >= 0xC0 && c <= 0xDE && c != 0xD7) {
             c += 32;
         }
 
-        // 2. Mapear variantes de vocales (ya en minúscula) a su versión simple
+        // 2. Mapear variantes de vocales (ya en min?scula) a su versi?n simple
         // Los valores Hex corresponden a las tablas del documento 
         switch (c) {
-            // Variantes de 'a' (à, á, â, ã, ä, å) 
+            // Variantes de 'a' (?, ?, ?, ?, ?, ?) 
             case 0xE0: case 0xE1: case 0xE2: case 0xE3: case 0xE4: case 0xE5:
                 c = 'a'; break;
             
-            // Variantes de 'e' (è, é, ê, ë) 
+            // Variantes de 'e' (?, ?, ?, ?) 
             case 0xE8: case 0xE9: case 0xEA: case 0xEB:
                 c = 'e'; break;
             
-            // Variantes de 'i' (ì, í, î, ï) [cite: 29]
+            // Variantes de 'i' (?, ?, ?, ?) [cite: 29]
             case 0xEC: case 0xED: case 0xEE: case 0xEF:
                 c = 'i'; break;
             
-            // Variantes de 'o' (ò, ó, ô, õ, ö, ø) [cite: 29]
+            // Variantes de 'o' (?, ?, ?, ?, ?, ?) [cite: 29]
             case 0xF2: case 0xF3: case 0xF4: case 0xF5: case 0xF6: case 0xF8:
                 c = 'o'; break;
             
-            // Variantes de 'u' (ù, ú, û, ü) [cite: 29]
+            // Variantes de 'u' (?, ?, ?, ?) [cite: 29]
             case 0xF9: case 0xFA: case 0xFB: case 0xFC:
                 c = 'u'; break;
                 
-            // Otros casos comunes (opcional según tu tokenizador)
-            case 0xF1: c = 'n'; break; // ñ -> n [cite: 5, 29]
+            // Otros casos comunes (opcional seg?n tu tokenizador)
+            case 0xF1: c = 'n'; break; // ? -> n [cite: 5, 29]
             default: break;
         }
     }
     return s;
 }
 
-string Tokenizador::analisisCasosEspeciales (const string& str) const{
-    // Analiza la cadena de entrada para detectar los casos especiales que contiene y almacenarlos en casosEspecialesDetectados. Se utilizará para mejorar la eficiencia de la tokenización, ya que si no se han detectado casos especiales, no se comprobará si un token es caso especial o no, sino que se considerará que no lo es (si el token contiene un caracter que no es delimitador ni caso especial, se considerará que el token es un caso especial)
-    //cout << "Analizando casos especiales para la cadena: " << str << endl;
-    // Detectar URL: debe comenzar con "http:", "https:" o "ftp:" (en minúsculas) seguido de algún carácter que no sea delimitador
-    string str_analisis;
-    if(this->pasarAminuscSinAcentos){
-        str_analisis = this->minuscSinAcentos(str);
-    }
-    else{
-        str_analisis = str;
-    }
+string Tokenizador::analisisCasosEspeciales (const string& str_analisis) const{
     
+    size_t pos_espacio = str_analisis.find_first_of(" ");
+
+    // Detectar URL
     if((str_analisis.find("http:") == 0 || str_analisis.find("https:") == 0 || str_analisis.find("ftp:") == 0)){
         // Verificar que el indicador sea seguido de algo que no sea delimitador
         size_t prefix_len = 0;
@@ -194,7 +311,7 @@ string Tokenizador::analisisCasosEspeciales (const string& str) const{
         else if(str_analisis.find("http:") == 0) prefix_len = 5;
         else if(str_analisis.find("ftp:") == 0) prefix_len = 4;
 
-        // La URL debe tener al menos un carácter adicional después del prefijo
+        // La URL debe tener al menos un car?cter adicional despu?s del prefijo
         if(str_analisis.size() > prefix_len){
             //string token = this->tratar_URL(str_analisis);
             //return token;
@@ -206,211 +323,153 @@ string Tokenizador::analisisCasosEspeciales (const string& str) const{
     string delimit_decimal = ",.";
     size_t pos_dec = str_analisis.find_first_of(delimit_decimal);
 
-    if(pos_dec != string::npos){
-        // Si el punto decimal está al final de la cadena o no está precedido por un dígito, no es un decimal
+    if(pos_dec != string::npos && (pos_espacio == string::npos || pos_dec < pos_espacio)){
+        // Si el punto decimal est? al final de la cadena o no est? precedido por un d?gito, no es un decimal
         if (pos_dec > 0 && pos_dec < str_analisis.size() - 1){
             if (isdigit(str_analisis[pos_dec - 1]) && isdigit(str_analisis[pos_dec + 1])){
-                return this ->tratar_DECIMAL(str_analisis);
+                return this->tratar_DECIMAL(str_analisis);
+            }
+        }
+    }
+
+    // Detectar email
+    size_t pos_at = str_analisis.find("@");
+    if(pos_at != string::npos && (pos_espacio == string::npos || pos_at < pos_espacio)){ // Si hay un '@' y est? antes de cualquier espacio (o no hay espacios)
+        // Verificar que el indicador "@" est? rodeado de caracteres que no sean delimitadores
+        if (pos_at > 0 && pos_at < str_analisis.size() - 1){
+            return this->tratar_EMAIL(str_analisis);
+        }
+    }
+    
+    // Detectar acronimo
+    size_t pos_punto = str_analisis.find_first_of(".");
+    if(pos_punto != string::npos && (pos_espacio == string::npos || pos_punto < pos_espacio)){
+        if (pos_punto > 0 && pos_punto < str_analisis.size() - 1){
+            // Verificar que los caracteres antes y despus del punto sean letras o dgitos
+            if (isalnum(str_analisis[pos_punto - 1]) && isalnum(str_analisis[pos_punto + 1])){
+                return this->tratar_ACRONIMO(str_analisis);
             }
         }
     }
     return "";
-    //return NINGUNO; // No se han detectado casos especiales
-    /*else if(str.find("@") != string::npos){
-        return EMAIL;
-    }
-    else if(str.find(".") != string::npos && str.find_first_not_of("0123456789.") == string::npos){
-        return DECIMAL;
-    }
-    else if(str.find("-") != string::npos && str.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-") == string::npos){
-        return ACRONIMO;
-    }
-    else if(str.find(" ") != string::npos){
-        return MULTIPALABRA;
-    }
-    else{
-        return (casoEspecial) -1; // No se han detectado casos especiales
-    }*/
+    
 }
 
 void Tokenizador::Tokenizar (const string& str, list<string>& tokens) const{
-    // Tokeniza str devolviendo el resultado en tokens. La lista tokens se vaciará antes de almacenar el resultado de la tokenización. 
-    /*tokens.clear();
-    size_t inicio = 0;
-    if (str.empty()){ // Si la cadena de entrada es vacía, no se añaden tokens a la lista y se devuelve
-        return;
-    } 
-    enum casoEspecial casosEspecialesDetectados = NINGUNO; // Analiza la cadena de entrada para detectar los casos especiales que contiene y almacenarlos en casosEspecialesDetectados. Se utilizará para mejorar la eficiencia de la tokenización, ya que si no se han detectado casos especiales, no se comprobará si un token es caso especial o no, sino que se considerará que no lo es (si el token contiene un caracter que no es delimitador ni caso especial, se considerará que el token es un caso especial)
-    //enum casoEspecial casosEspecialesDetectados = this->analisisCasosEspeciales(str); // Analiza la cadena de entrada para detectar los casos especiales que contiene y almacenarlos en casosEspecialesDetectados. Se utilizará para mejorar la eficiencia de la tokenización, ya que si no se han detectado casos especiales, no se comprobará si un token es caso especial o no, sino que se considerará que no lo es (si el token contiene un caracter que no es delimitador ni caso especial, se considerará que el token es un caso especial)
-    
-    for (size_t i = 0; i < str.size(); i++) {
-        cout << "Analizando el caracter '" << str[i] << "' en la posición " << i << endl;
-        if (this->dicc_delimitadores.find(str[i]) == this->dicc_delimitadores.end()) { // Si el caracter no es un delimitador o es un caso especial
-            continue;
-        }
-        else{
-            if (inicio == i){ // Si el delimitador está al inicio de la cadena o hay delimitadores consecutivos, se ignora el delimitador y no se añade un token vacío a la lista
-                inicio += 1;
-                continue;
-            }
-            if (this->dicc_noEspeciales.find(str[i]) != this->dicc_noEspeciales.end()) { // Si el caracter es un caso especial, se añade a la lista sin modificarlo
-                string token = string(str.data() + inicio, i - inicio);
-                tokens.push_back(token);
-                inicio = i + 1;
-                casosEspecialesDetectados = NINGUNO; // Si se ha detectado un caso especial, se resetea casosEspecialesDetectados para que no se considere que los siguientes tokens son casos especiales aunque contengan caracteres que no son delimitadores ni casos especiales, ya que solo se considerará que un token es un caso especial si contiene un caracter que no es delimitador ni caso especial
-                continue;
-            }
-            string token = string(str.data() + inicio, i - inicio + 1); // +1 para incluir el delimitador como parte del token
-            if (this->casosEspeciales){
-                cout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaa" << endl;
-                if (this->analisisCasosEspeciales(token) == URL){
-                    cout << "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB" << endl;
-                    casosEspecialesDetectados = URL;
-                    continue; // Si el token es un caso especial, se añade a la lista sin modificarlo
-                }
-            }
-            cout << "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" << endl;
-            tokens.push_back(token);
-            inicio = i + 1;
-        }
-    }
-    if (inicio < str.size()) { // Si el último token no termina con un delimitador, se añade el último token a la lista
-        string token = string(str.data() + inicio, str.size() - inicio);
-        tokens.push_back(token);
-    }*/
-    /*
-    tokens.clear();
-    size_t inicio = 0;
-    if (str.empty()){ // Si la cadena de entrada es vacía, no se añaden tokens a la lista y se devuelve
-        return;
-    }
-    unordered_set<char> dicc_AllDelimitadores;
-    dicc_AllDelimitadores.insert(' '); // El espacio se añadirá siempre como delimitador, aunque no se introduzca en nuevoDelimiters
-    dicc_AllDelimitadores.insert('\n'); // El salto de línea se añadirá siempre como delimitador, aunque no se introduzca en nuevoDelimiters
-    dicc_AllDelimitadores.insert('\r'); // El retorno de carro se añadirá siempre como delimitador, aunque no
-    if (!this->casosEspeciales){
-        dicc_AllDelimitadores.insert(this->dicc_delimitadores.begin(), this->dicc_delimitadores.end()); // Se añaden los delimitadores a dicc_AllDelimitadores
-    }
-    
-    string casoDetectado = "";
-
-    for(size_t i = 0; i < str.size(); i++){
-        if (!this->casosEspeciales){ // No hay casos especiales, delimitadores normales
-            if (dicc_AllDelimitadores.find(str[i]) == dicc_AllDelimitadores.end()){ // Si el caracter no es un delimitador ni un caso especial, se añade a la lista sin modificarlo
-                continue;
-            }
-
-            if (inicio == i){ // Si el delimitador está al inicio de la cadena o hay delimitadores consecutivos, se ignora el delimitador y no se añade un token vacío a la lista
-                inicio += 1;
-                continue;
-            }
-            string token = string(str.data() + inicio, i - inicio);
-            tokens.push_back(token);
-            inicio = i + 1;
-            continue;
-        }
-        else{
-            if (dicc_AllDelimitadores.find(str[i]) != dicc_AllDelimitadores.end()) { // Si el caracter es un caso especial, se añade a la lista sin modificarlo
-                if (inicio == i){ // Si el delimitador está al inicio de la cadena o hay delimitadores consecutivos, se ignora el delimitador y no se añade un token vacío a la lista
-                    inicio += 1;
-                    continue;
-                }
-                string token = string(str.data() + inicio, i - inicio);
-                tokens.push_back(token);
-                inicio = i + 1;
-                casoDetectado = NINGUNO; // Si se ha detectado un caso especial, se resetea casoDetectado para que no se considere que los siguientes tokens son casos especiales aunque contengan caracteres que no son delimitadores ni casos especiales, ya que solo se considerará que un token es un caso especial si contiene un caracter que no es delimitador ni caso especial
-                continue;
-            }
-            else{ //
-                if (this->dicc_delimitadores.find(str[i]) != this->dicc_delimitadores.end()){ // Si el caracter es un delimitador, se añade a la lista sin modificarlo
-                    //cout << "Especiales: " << str[i] << endl;
-                    if (inicio == i){ // Si el delimitador está al inicio de la cadena o hay delimitadores consecutivos, se ignora el delimitador y no se añade un token vacío a la lista
-                        inicio += 1;
-                        continue;
-                    }
-                    string token = string(str.data() + inicio, str.size()); // Se crea el token con el resto de la cadena a partir del delimitador, ya que si es un caso especial, el token puede contener delimitadores en su interior (por ejemplo, una URL puede contener puntos, guiones, etc.) y no se puede considerar que el token termina en el delimitador actual
-                    casoDetectado = this->analisisCasosEspeciales(token);
-                    if (casoDetectado == URL){
-                        cout << "Token detectado como URL: " << token << endl;
-                        token = this->tratar_URL(token, dicc_AllDelimitadores);
-                        tokens.push_back(token);
-                        i=inicio + token.size() - 1; // Se actualiza i para que apunte al último caracter de la URL, ya que el bucle incrementará i en 1, por lo que el siguiente caracter a analizar será el siguiente al último caracter de la URL
-                        inicio = i + 1; // Se actualiza inicio para que apunte al siguiente caracter al último caracter de la URL, ya que el bucle incrementará i en 1, por lo que el siguiente caracter a analizar será el siguiente al último caracter de la URL
-                        casoDetectado = NINGUNO; // Si se ha detectado un caso especial, se resetea casoDetectado para que no se considere que los siguientes tokens son casos especiales aunque contengan caracteres que no son delimitadores ni casos especiales, ya que solo se considerará que un token es un caso especial si contiene un caracter que no es delimitador ni caso especial
-                        continue; // Si el token es un caso especial, se añade a la lista sin modificarlo
-                    }
-                    /*if (casoDetectado == DECIMAL){
-                        cout << "Token detectado como DECIMAL: " << token << endl;
-                        continue; // Si el token es un caso especial, se añade a la lista sin modificarlo
-                    }
-                    cout << "PALABRA: " << token << endl;
-                    token.pop_back(); // Se elimina el delimitador del token, ya que el delimitador se añadirá como un token separado en la siguiente iteración del bucle
-                    tokens.push_back(token); // Se añade el token sin el delimitador, ya que el delimitador se añadirá como un token separado en la siguiente iteración del bucle
-                    inicio = i + 1;
-                    casoDetectado = NINGUNO; // Si se ha detectado un caso especial, se resetea casoDetectado para que no se considere que los siguientes tokens son casos especiales aunque contengan caracteres que no son delimitadores ni casos especiales, ya que solo se considerará que un token es un caso especial si contiene un caracter que no es delimitador ni caso especial
-                }
-            }
-        }
-        //cout << i << endl;
-    }*/
 
     tokens.clear();
     size_t inicio = 0;
-    if (str.empty()){ // Si la cadena de entrada es vacía, no se añaden tokens a la lista y se devuelve
+    if (str.empty()){ // Si la cadena de entrada es vac?a, no se a?aden tokens a la lista y se devuelve
         return;
     }
 
-    for(size_t i = 0; i < str.size(); i++){
-        //cout << "Analizando el caracter '" << str[i] << "' en la posición " << i << endl;
-        if (this->dicc_delimitadores.find(str[i]) != this->dicc_delimitadores.end()){ // Si el caracter es un delimitador, se añade a la lista sin modificarlo
-            if (inicio == i){ // Si el delimitador está al inicio de la cadena o hay delimitadores consecutivos, se ignora el delimitador y no se añade un token vacío a la lista
+    string str_analisis;
+    if(this->pasarAminuscSinAcentos){
+        str_analisis = this->minuscSinAcentos(str);
+    }
+    else{
+        str_analisis = str;
+    }
+
+    for(size_t i = 0; i < str_analisis.size(); i++){
+        //cout << "Analizando el caracter '" << str[i] << "' en la posici?n " << i << endl;
+        /*if (this->dicc_delimitadores.find(str_analisis[i]) != this->dicc_delimitadores.end()){ // Si el caracter es un delimitador, se a?ade a la lista sin modificarlo
+            if (inicio == i){ // Si el delimitador est? al inicio de la cadena o hay delimitadores consecutivos, se ignora el delimitador y no se a?ade un token vac?o a la lista
                 inicio += 1;
                 continue;
             }
             if (this->casosEspeciales){
-                string token = string(str.data() + inicio, str.size() - inicio); // Se crea el token con el resto de la cadena a partir del delimitador, ya que si es un caso especial, el token puede contener delimitadores en su interior (por ejemplo, una URL puede contener puntos, guiones, etc.) y no se puede considerar que el token termina en el delimitador actual
+                string token = string(str_analisis.data() + inicio, str_analisis.size() - inicio); // Se crea el token con el resto de la cadena a partir del delimitador, ya que si es un caso especial, el token puede contener delimitadores en su interior (por ejemplo, una URL puede contener puntos, guiones, etc.) y no se puede considerar que el token termina en el delimitador actual
                 //cout << "Token analizado para casos especiales: " << token << endl;
                 token = this->analisisCasosEspeciales(token);
                 //cout << "Token analizado para casos especiales: " << token << endl;
                 if (!token.empty()){
                     //cout << "Token detectado como caso especial: " << token << endl;
                     tokens.push_back(token);
-                    i = inicio + token.size() - 1; // Se actualiza i para que apunte al último caracter del caso especial, ya que el bucle incrementará i en 1, por lo que el siguiente caracter a analizar será el siguiente al último caracter del caso especial
+                    i = inicio + token.size() - 1; // Se actualiza i para que apunte al ?ltimo caracter del caso especial, ya que el bucle incrementar? i en 1, por lo que el siguiente caracter a analizar ser? el siguiente al ?ltimo caracter del caso especial
                     inicio = i + 1;
-                    continue; // Si el token es un caso especial, se añade a la lista sin modificar
+                    continue; // Si el token es un caso especial, se a?ade a la lista sin modificar
                 }
 
             }
             //cout << "PALABRA: " << string(str.data() + inicio, i - inicio) << endl;
-            string token = string(str.data() + inicio, i - inicio);
+            string token = string(str_analisis.data() + inicio, i - inicio);
             tokens.push_back(token);
             inicio = i + 1;
         }
+        */
+        char c = str_analisis[i];
+        string token;
+        //cout << "Analisis: "<< string(str_analisis.data() + inicio, str_analisis.size() - inicio) << endl;
+        if (this->URL_DELIMITERS.find(c) != string::npos){
+            token = this->tratar_URL(string(str_analisis.data() + inicio, str_analisis.size() - inicio + 1));
+            //cout << "Token analizado para URL: " << token << endl;
+        }
+
+        if (this->DECIMAL_DELIMITERS.find(c) != string::npos){
+            token = this->tratar_DECIMAL(string(str_analisis.data() + inicio, str_analisis.size() - inicio));
+        }
+
+        else if (this->EMAIL_DELIMITER==c){
+            token = this->tratar_EMAIL(string(str_analisis.data() + inicio, str_analisis.size() - inicio));
+        }
+
+        else if (token.empty() && this->dicc_delimitadores.find(c) != this->dicc_delimitadores.end()){ // 
+            //cout << "Delimitador encontrado: '" << c << "' en la posici?n " << i << endl;
+            if (inicio == i){ // Si el delimitador est? al inicio de la cadena o hay delimitadores consecutivos, se ignora el delimitador y no se a?ade un token vac?o a la lista
+                inicio += 1;
+                continue;
+            }
+            token = string(str_analisis.data() + inicio, i - inicio); 
+            tokens.push_back(token);
+            i= inicio + token.size();
+            inicio = i + 1;
+        } 
+
+        else if(!token.empty()){
+            //cout << "Push de "<< token<<endl;
+            if (inicio == i){ // Si el delimitador est? al inicio de la cadena o hay delimitadores consecutivos, se ignora el delimitador y no se a?ade un token vac?o a la lista
+                inicio += 1;
+                continue;
+            }
+            tokens.push_back(token);
+            i = inicio + token.size();
+            inicio = i + 1;
+
+        }
+
+        
+
     }
-    if (inicio < str.size()) { // Si el último token no termina con un delimitador, se añade el último token a la lista
+    if (inicio < str.size()) { // Si elltimo token no termina con un delimitador, se aade elltimo token a la lista
         string token = string(str.data() + inicio, str.size() - inicio);
         tokens.push_back(token);
     }
+
+    for (const string& token : tokens){
+        cout << token << endl;
+    }
+    cout << endl << endl << endl;
 }
 
 bool Tokenizador::Tokenizar (const string& i, const string& f) const{
-    // Tokeniza el fichero i guardando la salida en el fichero f (una palabra en cada línea del fichero). Devolverá true si se realiza la tokenización de forma correcta; false en caso contrario enviando a cerr el mensaje correspondiente (p.ej. que no exista el archivo i)
+    // Tokeniza el fichero i guardando la salida en el fichero f (una palabra en cada l?nea del fichero). Devolver? true si se realiza la tokenizaci?n de forma correcta; false en caso contrario enviando a cerr el mensaje correspondiente (p.ej. que no exista el archivo i)
 }
 
 bool Tokenizador::Tokenizar (const string & i) const{
-    // Tokeniza el fichero i guardando la salida en un fichero de nombre i añadiéndole extensión .tk (sin eliminar previamente la extensión de i por ejemplo, del archivo pp.txt se generaría el resultado en pp.txt.tk), y que contendrá una palabra en cada línea del fichero. Devolverá true si se realiza la tokenización de forma correcta; false en caso contrario enviando a cerr el mensaje correspondiente (p.ej. que no exista el archivo i)
+    // Tokeniza el fichero i guardando la salida en un fichero de nombre i a?adi?ndole extensi?n .tk (sin eliminar previamente la extensi?n de i por ejemplo, del archivo pp.txt se generar?a el resultado en pp.txt.tk), y que contendr? una palabra en cada l?nea del fichero. Devolver? true si se realiza la tokenizaci?n de forma correcta; false en caso contrario enviando a cerr el mensaje correspondiente (p.ej. que no exista el archivo i)
 }
 
 bool Tokenizador::TokenizarListaFicheros (const string& i) const{
-    // Tokeniza el fichero i que contiene un nombre de fichero por línea guardando la salida en ficheros (uno por cada línea de i) cuyo nombre será el leído en i añadiéndole extensión .tk, y que contendrá una palabra en cada línea del fichero leído en i. Devolverá true si se realiza la tokenización de forma correcta de todos los archivos que contiene i; devolverá false en caso contrario enviando a cerr el mensaje correspondiente (p.ej. que no exista el archivo i, o que se trate de un directorio, enviando a "cerr" los archivos de i que no existan o que sean directorios; luego no se ha de interrumpir la ejecución si hay algún archivo en i que no exista)
+    // Tokeniza el fichero i que contiene un nombre de fichero por l?nea guardando la salida en ficheros (uno por cada l?nea de i) cuyo nombre ser? el le?do en i a?adi?ndole extensi?n .tk, y que contendr? una palabra en cada l?nea del fichero le?do en i. Devolver? true si se realiza la tokenizaci?n de forma correcta de todos los archivos que contiene i; devolver? false en caso contrario enviando a cerr el mensaje correspondiente (p.ej. que no exista el archivo i, o que se trate de un directorio, enviando a "cerr" los archivos de i que no existan o que sean directorios; luego no se ha de interrumpir la ejecuci?n si hay alg?n archivo en i que no exista)
 }
 
 bool Tokenizador::TokenizarDirectorio (const string& i) const{
-    // Tokeniza todos los archivos que contenga el directorio i, incluyendo los de los subdirectorios, guardando la salida en ficheros cuyo nombre será el de entrada añadiéndole extensión .tk, y que contendrá una palabra en cada línea del fichero. Devolverá true si se realiza la tokenización de forma correcta de todos los archivos; devolverá false en caso contrario enviando a cerr el mensaje correspondiente (p.ej. que no exista el directorio i, o los ficheros que no se hayan podido tokenizar)
+    // Tokeniza todos los archivos que contenga el directorio i, incluyendo los de los subdirectorios, guardando la salida en ficheros cuyo nombre ser? el de entrada a?adi?ndole extensi?n .tk, y que contendr? una palabra en cada l?nea del fichero. Devolver? true si se realiza la tokenizaci?n de forma correcta de todos los archivos; devolver? false en caso contrario enviando a cerr el mensaje correspondiente (p.ej. que no exista el directorio i, o los ficheros que no se hayan podido tokenizar)
 }
 
 void Tokenizador::DelimitadoresPalabra(const string& nuevoDelimiters){
-    // Inicializa delimiters a nuevoDelimiters, filtrando que no se introduzcan delimitadores repetidos (de izquierda a derecha, en cuyo caso se eliminarían los que hayan sido repetidos por la derecha)
+    // Inicializa delimiters a nuevoDelimiters, filtrando que no se introduzcan delimitadores repetidos (de izquierda a derecha, en cuyo caso se eliminar?an los que hayan sido repetidos por la derecha)
     /*
     this->delimiters = " ";
 
@@ -421,11 +480,17 @@ void Tokenizador::DelimitadoresPalabra(const string& nuevoDelimiters){
         }
     }
     */
+    //cout << "Nuevo delimitadores: " << nuevoDelimiters << endl;
 
-    this->delimiters = " ";
-    this->dicc_delimitadores.insert(' '); // El espacio se añadirá siempre como delimitador, aunque no se introduzca en nuevoDelimiters
-    this->dicc_delimitadores.insert('\n'); // El salto de línea se añadirá siempre como delimitador, aunque no se introduzca en nuevoDelimiters
-    this->dicc_delimitadores.insert('\r'); // El retorno de carro se añadirá siempre como delimitador, aunque no se introduzca en nuevoDelimiters
+    //this->delimiters = "";
+    //this->dicc_delimitadores.clear();
+    
+
+    if (this->dicc_delimitadores.empty()){
+        this->dicc_delimitadores.insert(' '); // El espacio se a?adir? siempre como delimitador, aunque no se introduzca en nuevoDelimiters
+        this->dicc_delimitadores.insert('\n'); // El salto de l?nea se a?adir? siempre como delimitador, aunque no se introduzca en nuevoDelimiters
+        this->dicc_delimitadores.insert('\r'); // El retorno de carro se a?adir? siempre como delimitador, aunque no se introduzca en nuevoDelimiters
+    }
 
     for(char letra : nuevoDelimiters) {
         if (this->dicc_delimitadores.find(letra) == this->dicc_delimitadores.end()) {
@@ -433,6 +498,8 @@ void Tokenizador::DelimitadoresPalabra(const string& nuevoDelimiters){
             this->delimiters += letra;
         }
     }
+
+    //cout << "Delimitadores finales: " << this->delimiters << endl;
     /*
     bool visto[256] = {false}; //rellena el array a valor False
 
@@ -448,7 +515,7 @@ void Tokenizador::DelimitadoresPalabra(const string& nuevoDelimiters){
 }
 
 void Tokenizador::AnyadirDelimitadoresPalabra(const string& nuevoDelimiters){ 
-    // Añade al final de "delimiters" los nuevos delimitadores que aparezcan en "nuevoDelimiters" (no se almacenarán caracteres repetidos)
+    // A?ade al final de "delimiters" los nuevos delimitadores que aparezcan en "nuevoDelimiters" (no se almacenar?n caracteres repetidos)
     DelimitadoresPalabra(this->delimiters + nuevoDelimiters);
 }
 
@@ -468,7 +535,7 @@ bool Tokenizador::CasosEspeciales () const{
 }
 
 void Tokenizador::PasarAminuscSinAcentos (const bool& nuevoPasarAminuscSinAcentos){
-    // Cambia la variable privada "pasarAminuscSinAcentos". Atención al formato de codificación del corpus (comando "file" de Linux). Para la corrección de la práctica se utilizará el formato actual (ISO-8859). 
+    // Cambia la variable privada "pasarAminuscSinAcentos". Atenci?n al formato de codificaci?n del corpus (comando "file" de Linux). Para la correcci?n de la pr?ctica se utilizar? el formato actual (ISO-8859). 
     this->pasarAminuscSinAcentos = nuevoPasarAminuscSinAcentos;
 }
 
