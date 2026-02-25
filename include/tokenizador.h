@@ -17,6 +17,10 @@ class Tokenizador {
 
     static inline char EMAIL_DELIMITER='@';
 
+    static inline char ACRONIMO_DELIMITER='.';
+
+    static inline char MULTIPALABRA_DELIMITER='-'; // Delimitador que se considera caso especial de múltiples delimitadores, es decir, si un token es un caso especial de múltiples delimitadores, se considera el delimitador como token
+
     friend ostream& operator<<(ostream&, const Tokenizador&);	 
     // cout << "DELIMITADORES: " << delimiters << " TRATA CASOS ESPECIALES: " << casosEspeciales << " PASAR A MINUSCULAS Y SIN ACENTOS: " << pasarAminuscSinAcentos;
     // Aunque se modifique el almacenamiento de los delimitadores por temas de eficiencia, el campo delimiters se imprimir? con el string le?do en el tokenizador (tras las modificaciones y eliminaci?n de los caracteres repetidos correspondientes)
@@ -89,8 +93,6 @@ class Tokenizador {
 
         //enum casoEspecial casosEspecialesDetectados; // Almacena los casos especiales detectados en la tokenizaci?n. Se utilizar? para mejorar la eficiencia de la tokenizaci?n, ya que si no se han detectado casos especiales, no se comprobar? si un token es caso especial o no, sino que se considerar? que no lo es (si el token contiene un caracter que no es delimitador ni caso especial, se considerar? que el token es un caso especial)
 
-        string analisisCasosEspeciales (const string& str) const; // Analiza la cadena de entrada para detectar los casos especiales que contiene y almacenarlos en casosEspecialesDetectados. Se utilizar? para mejorar la eficiencia de la tokenizaci?n, ya que si no se han detectado casos especiales, no se comprobar? si un token es caso especial o no, sino que se considerar? que no lo es (si el token contiene un caracter que no es delimitador ni caso especial, se considerar? que el token es un caso especial)
-
         string tratar_URL(const string& token) const; // Trata el caso especial de las URLs, eliminando los delimitadores que pueda contener y dejando solo la URL limpia como token. Devuelve 0 si se ha tratado correctamente el caso especial, -1 si no se ha detectado el caso especial (el token no es una URL) y -2 si se ha detectado el caso especial pero no se ha podido tratar correctamente (por ejemplo, porque la URL no tiene un formato correcto)
     
         string minuscSinAcentos(const string& str) const; // Devuelve la cadena de entrada pasada a min?sculas y sin acentos. Atenci?n al formato de codificaci?n del corpus (comando "file" de Linux). Para la correcci?n de la pr?ctica se utilizar? el formato actual (ISO-8859).
@@ -100,6 +102,8 @@ class Tokenizador {
         string tratar_EMAIL(const string& token) const; // Trata el caso especial de los emails, eliminando los delimitadores que pueda contener y dejando solo el email limpio como token. Devuelve 0 si se ha tratado correctamente el caso especial, -1 si no se ha detectado el caso especial (el token no es un email) y -2 si se ha detectado el caso especial pero no se ha podido tratar correctamente (por ejemplo, porque el email no tiene un formato correcto)
     
         string tratar_ACRONIMO(const string& token) const; // Trata el caso especial de los acr?nimos, eliminando los delimitadores que pueda contener y dejando solo el acr?nimo limpio como token. Devuelve 0 si se ha tratado correctamente el caso especial, -1 si no se ha detectado el caso especial (el token no es un acr?nimo) y -2 si se ha detectado el caso especial pero no se ha podido tratar correctamente (por ejemplo, porque el acr?nimo no tiene un formato correcto)
+    
+        string tratar_MULTIPALABRA(const string& token) const; // Trata el caso especial de los casos de múltiples delimitadores, eliminando los delimitadores que pueda contener y dejando solo el caso especial limpio como token. Devuelve 0 si se ha tratado correctamente el caso especial, -1 si no se ha detectado el caso especial (el token no es un caso especial de múltiples delimitadores) y -2 si se ha detectado el caso especial pero no se ha podido tratar correctamente (por ejemplo, porque el caso especial no tiene un formato correcto)
     };
 
 #endif
