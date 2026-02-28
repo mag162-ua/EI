@@ -11,7 +11,13 @@ using namespace std;
 
 class Tokenizador {
 
-    static inline string URL_DELIMITERS="_:/.?&-=#@"; // Delimitadores especiales de URL que estï¿½n permitidos dentro de la URL
+    static inline bool DELIMITADOR_URL[256] = {false};
+
+    static inline bool DELIMITADOR_DECIMAL[256] = {false};
+
+    static unsigned char mapa_minusculas[256] ;
+
+    static inline string URL_DELIMITERS="_:/.?&-=#@"; // Delimitadores especiales de URL que est?n permitidos dentro de la URL
 
     static inline string DECIMAL_DELIMITERS=".,";
 
@@ -19,7 +25,7 @@ class Tokenizador {
 
     static inline char ACRONIMO_DELIMITER='.';
 
-    static inline char MULTIPALABRA_DELIMITER='-'; // Delimitador que se considera caso especial de mÃºltiples delimitadores, es decir, si un token es un caso especial de mÃºltiples delimitadores, se considera el delimitador como token
+    static inline char MULTIPALABRA_DELIMITER='-'; // Delimitador que se considera caso especial de múltiples delimitadores, es decir, si un token es un caso especial de múltiples delimitadores, se considera el delimitador como token
 
     friend ostream& operator<<(ostream&, const Tokenizador&);	 
     // cout << "DELIMITADORES: " << delimiters << " TRATA CASOS ESPECIALES: " << casosEspeciales << " PASAR A MINUSCULAS Y SIN ACENTOS: " << pasarAminuscSinAcentos;
@@ -89,13 +95,15 @@ class Tokenizador {
 
         unordered_set<char> dicc_delimitadores; // Almacena los delimitadores para mejorar la eficiencia de la tokenizaci?n. El valor del set no se utilizar?, solo se usar? para comprobar si un caracter es delimitador o no (si el caracter no existe en el set, no es delimitador; si existe, es delimitador)
 
+        bool delimitadores[256] = {false};
+
         //unordered_set<char> dicc_noEspeciales; // Almacena los caracteres que no son casos especiales para mejorar la eficiencia de la tokenizaci?n. El valor del set no se utilizar?, solo se usar? para comprobar si un caracter es caso especial o no (si el caracter no existe en el set, es caso especial; si existe, no es caso especial)
 
         //enum casoEspecial casosEspecialesDetectados; // Almacena los casos especiales detectados en la tokenizaci?n. Se utilizar? para mejorar la eficiencia de la tokenizaci?n, ya que si no se han detectado casos especiales, no se comprobar? si un token es caso especial o no, sino que se considerar? que no lo es (si el token contiene un caracter que no es delimitador ni caso especial, se considerar? que el token es un caso especial)
 
         string tratar_URL(const string& token) const; // Trata el caso especial de las URLs, eliminando los delimitadores que pueda contener y dejando solo la URL limpia como token. Devuelve 0 si se ha tratado correctamente el caso especial, -1 si no se ha detectado el caso especial (el token no es una URL) y -2 si se ha detectado el caso especial pero no se ha podido tratar correctamente (por ejemplo, porque la URL no tiene un formato correcto)
     
-        string minuscSinAcentos(const string& str) const; // Devuelve la cadena de entrada pasada a min?sculas y sin acentos. Atenci?n al formato de codificaci?n del corpus (comando "file" de Linux). Para la correcci?n de la pr?ctica se utilizar? el formato actual (ISO-8859).
+        void minuscSinAcentos(string& str) const; // Devuelve la cadena de entrada pasada a min?sculas y sin acentos. Atenci?n al formato de codificaci?n del corpus (comando "file" de Linux). Para la correcci?n de la pr?ctica se utilizar? el formato actual (ISO-8859).
 
         string tratar_DECIMAL(const string& token) const; // Trata el caso especial de los n?meros decimales, eliminando los delimitadores que pueda contener y dejando solo el n?mero decimal limpio como token. Devuelve 0 si se ha tratado correctamente el caso especial, -1 si no se ha detectado el caso especial (el token no es un n?mero decimal) y -2 si se ha detectado el caso especial pero no se ha podido tratar correctamente (por ejemplo, porque el n?mero decimal no tiene un formato correcto)
     
@@ -103,7 +111,21 @@ class Tokenizador {
     
         string tratar_ACRONIMO(const string& token) const; // Trata el caso especial de los acr?nimos, eliminando los delimitadores que pueda contener y dejando solo el acr?nimo limpio como token. Devuelve 0 si se ha tratado correctamente el caso especial, -1 si no se ha detectado el caso especial (el token no es un acr?nimo) y -2 si se ha detectado el caso especial pero no se ha podido tratar correctamente (por ejemplo, porque el acr?nimo no tiene un formato correcto)
     
-        string tratar_MULTIPALABRA(const string& token) const; // Trata el caso especial de los casos de mÃºltiples delimitadores, eliminando los delimitadores que pueda contener y dejando solo el caso especial limpio como token. Devuelve 0 si se ha tratado correctamente el caso especial, -1 si no se ha detectado el caso especial (el token no es un caso especial de mÃºltiples delimitadores) y -2 si se ha detectado el caso especial pero no se ha podido tratar correctamente (por ejemplo, porque el caso especial no tiene un formato correcto)
+        string tratar_MULTIPALABRA(const string& token) const; // Trata el caso especial de los casos de múltiples delimitadores, eliminando los delimitadores que pueda contener y dejando solo el caso especial limpio como token. Devuelve 0 si se ha tratado correctamente el caso especial, -1 si no se ha detectado el caso especial (el token no es un caso especial de múltiples delimitadores) y -2 si se ha detectado el caso especial pero no se ha podido tratar correctamente (por ejemplo, porque el caso especial no tiene un formato correcto)
+
+        ///////////////////////////////////////////////77
+
+        void inicializar_delimitadores_especiales();
+
+        string tratar_url(const string& str,const int& inicio) const;
+
+        string tratar_decimal(const string& str,const int& inicio,const size_t& primer_sig) const;
+
+        string tratar_email(const string& str,const int& inicio,const size_t& primer_arroba) const;
+
+        string tratar_acronimo(const string& str, const int& inicio, const size_t& primer_punto) const;
+
+        string tratar_multipalabra(const string& str, const int& inicio, const size_t& primer_guion) const;
     };
 
 #endif
