@@ -497,15 +497,15 @@ size_t Tokenizador::tratar_url(const string& str,const int& inicio) const{
     size_t i = inicio + prefix_len;
 
     for (; i < str_len; ++i) {
-        unsigned char c = (unsigned char)str[i];
+        //unsigned char c = (unsigned char)str[i];
 
         // 1. Si es un delimitador de URL (.:/?&=#@...), seguimos adelante
-        if (this->DELIMITADOR_URL[c]) {
+        if (this->DELIMITADOR_URL[(unsigned char)str[i]]) {
             continue;
         }
 
         // 2. Si es un delimitador general del tokenizador, la URL termina
-        if (this->delimitadores[c]) {
+        if (this->delimitadores[(unsigned char)str[i]]) {
             if(i == prefix_len){
                 i--;
             }
@@ -534,7 +534,7 @@ size_t Tokenizador::tratar_decimal(const string& str,const int& inicio,const siz
 
     i = primer_sig+1;
 
-    if (i >= str_len || !isdigit(str[i])){ // Si el primer signo se encuentra en el final del string o el siguiente carac ter no es un número
+    if (i >= str_len || !isdigit((unsigned char)str[i])){ // Si el primer signo se encuentra en el final del string o el siguiente carac ter no es un número
         //return "";
         return string::npos;
     }
@@ -544,12 +544,12 @@ size_t Tokenizador::tratar_decimal(const string& str,const int& inicio,const siz
     for(; i < str_len; i++){
         //unsigned char c = (unsigned char)str[i];
 
-        if (isdigit(str[i])){ // Si no es un número NO es un decimal
+        if (isdigit((unsigned char)str[i])){ // Si no es un número NO es un decimal
             
             continue;
         }
         else{
-            if (this->DELIMITADOR_DECIMAL[str[i]]) {
+            if (this->DELIMITADOR_DECIMAL[(unsigned char)str[i]]) {
                 if (i == pos_signo + 1){ // Dos signos juntos
                     //cout << str[pos_signo]<< " "<< str[i] << endl;
                     //cout<<"NO ES DECIMAL2"<<endl;
@@ -561,12 +561,12 @@ size_t Tokenizador::tratar_decimal(const string& str,const int& inicio,const siz
                 continue;
             }
 
-            if (str[i] == '%' || str[i] == '$'){
+            if ((unsigned char)str[i] == '%' || (unsigned char)str[i] == '$'){
                 if (i == pos_signo + 1){ // Si el s?mbolo de porcentaje o d?lar est? justo despu?s del separador decimal, no es un n?mero v?lido
                     //return "";
                     return string::npos;
                 }
-                if (i == str_len - 1 || (str[i+1] == ' ' || str[i+1] == '\t' || str[i+1] == '\n' || str[i+1] == '\r')){ // Si el s?mbolo de porcentaje o d?lar no est? al final del token, no es un n?mero v?lido
+                if (i == str_len - 1 || ((unsigned char)str[i+1] == ' ' || (unsigned char)str[i+1] == '\t' || (unsigned char)str[i+1] == '\n' || (unsigned char)str[i+1] == '\r')){ // Si el s?mbolo de porcentaje o d?lar no est? al final del token, no es un n?mero v?lido
                     i = i+1;
                     break;
                 }
@@ -576,7 +576,7 @@ size_t Tokenizador::tratar_decimal(const string& str,const int& inicio,const siz
                 }
             }
 
-            if(this->delimitadores[str[i]]){
+            if(this->delimitadores[(unsigned char)str[i]]){
                 if (i == pos_signo + 1){ // Si './,' seguido de Delimitador, se elimina el .
                     //cout<<"NO ES DECIMAL5"<<endl;
                     i--;
@@ -620,7 +620,7 @@ size_t Tokenizador::tratar_email(const string& str,const int& inicio,const size_
     for(;i < str_len; i++){
         //unsigned char c = (unsigned char)str[i];
 
-        if (str[i] == '.' || str[i] == '-' || str[i] == '_'){
+        if ((unsigned char)str[i] == '.' || (unsigned char)str[i] == '-' || (unsigned char)str[i] == '_'){
             if (i == ult_sig + 1){
                 i--;
                 break;
@@ -629,12 +629,12 @@ size_t Tokenizador::tratar_email(const string& str,const int& inicio,const size_
             continue;
         }
 
-        if (str[i] == '@'){
+        if ((unsigned char)str[i] == '@'){
             //return "";
             return string::npos;
         }
 
-        if(this->delimitadores[str[i]]){
+        if(this->delimitadores[(unsigned char)str[i]]){
             if (i == ult_sig + 1){
                 i--;
                 break;
@@ -660,7 +660,7 @@ size_t Tokenizador::tratar_acronimo(const string& str,const int& inicio,const si
     for(;i < str_len; i++){
         //unsigned char c = (unsigned char)str[i];
 
-        if(str[i] == '.'){
+        if((unsigned char)str[i] == '.'){
             if(i == ultimo_punto + 1){
                 i--;
                 break;
@@ -669,7 +669,7 @@ size_t Tokenizador::tratar_acronimo(const string& str,const int& inicio,const si
             continue;
         }
 
-        if(this->delimitadores[str[i]]){
+        if(this->delimitadores[(unsigned char)str[i]]){
             if(i == ultimo_punto + 1){
                 i--;
                 break;
@@ -695,7 +695,7 @@ size_t Tokenizador::tratar_multipalabra(const string& str,const int& inicio,cons
     for(; i < str_len; i++){
         //unsigned char c = (unsigned char)str[i];
         
-        if (str[i] == '-'){
+        if ((unsigned char)str[i] == '-'){
             if (i == ultimo_guion + 1){
                 i--;
                 break;
@@ -703,8 +703,9 @@ size_t Tokenizador::tratar_multipalabra(const string& str,const int& inicio,cons
             ultimo_guion = i;
             continue;
         }
-
-        if(this->delimitadores[str[i]]){
+        //cout<<"A"<<endl;
+        if(this->delimitadores[(unsigned char)str[i]]){
+            //cout<<"B"<<endl;
             if (i == ultimo_guion + 1){
                 i--;
                 break;
@@ -766,31 +767,31 @@ void Tokenizador::Tokenizar (const string& str, list<string>& tokens) const{
 
             if (this->CasosEspeciales()){
 
-                if (this->DELIMITADOR_URL[data[i]]){
+                if (this->DELIMITADOR_URL[(unsigned char)data[i]]){
                     //cout << "URL" <<endl;
                     token = tratar_url(str_analisis, inicio);
                 }
 
-                if (token == string::npos && this->DELIMITADOR_DECIMAL[data[i]]){
+                if (token == string::npos && this->DELIMITADOR_DECIMAL[(unsigned char)data[i]]){
                     //cout << "DECIMAL" <<endl;
                     token = tratar_decimal(str_analisis, inicio, i);
-                    if (token != string::npos && this->DELIMITADOR_DECIMAL[data[inicio]]){
+                    if (token != string::npos && this->DELIMITADOR_DECIMAL[(unsigned char)data[inicio]]){
                         //token = '0' + token;
                         caracter_plus = true;
                     }
                 }
 
-                if (token == string::npos && data[i] == '@'){
+                if (token == string::npos && (unsigned char)data[i] == '@'){
                     //cout << "EMAIL" <<endl;
                     token = tratar_email(str_analisis, inicio, i);
                 }
 
-                if (token == string::npos && data[i] == '.'){
+                if (token == string::npos && (unsigned char)data[i] == '.'){
                     //cout << "ACRONIMO" <<endl;
                     token = tratar_acronimo(str_analisis, inicio, i);
                 }
 
-                if (token == string::npos && data[i] == '-'){
+                if (token == string::npos && (unsigned char)data[i] == '-'){
                     //cout << "MUTIPALABRA" <<endl;
                     token = tratar_multipalabra(str_analisis, inicio, i);
                 }
