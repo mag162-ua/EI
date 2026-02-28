@@ -117,15 +117,15 @@ class Tokenizador {
 
         void inicializar_delimitadores_especiales();
 
-        string tratar_url(const string& str,const int& inicio) const;
+        size_t tratar_url(const string& str,const int& inicio) const;
 
-        string tratar_decimal(const string& str,const int& inicio,const size_t& primer_sig) const;
+        size_t tratar_decimal(const string& str,const int& inicio,const size_t& primer_sig) const;
 
-        string tratar_email(const string& str,const int& inicio,const size_t& primer_arroba) const;
+        size_t tratar_email(const string& str,const int& inicio,const size_t& primer_arroba) const;
 
-        string tratar_acronimo(const string& str, const int& inicio, const size_t& primer_punto) const;
+        size_t tratar_acronimo(const string& str, const int& inicio, const size_t& primer_punto) const;
 
-        string tratar_multipalabra(const string& str, const int& inicio, const size_t& primer_guion) const;
+        size_t tratar_multipalabra(const string& str, const int& inicio, const size_t& primer_guion) const;
     };
 
 #endif

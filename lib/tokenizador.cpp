@@ -476,7 +476,7 @@ void Tokenizador::minuscSinAcentos(string& str) const{
 
 }
 
-string Tokenizador::tratar_url(const string& str,const int& inicio) const{
+size_t Tokenizador::tratar_url(const string& str,const int& inicio) const{
 
     size_t prefix_len = 0;
     size_t str_len = str.length();
@@ -488,7 +488,8 @@ string Tokenizador::tratar_url(const string& str,const int& inicio) const{
     else if (str.compare(inicio, 4, "ftp:") == 0) prefix_len = 4;
 
     if (prefix_len == 0 || (size_t)inicio + prefix_len > str.size()) {
-        return "";
+        //return "";
+        return string::npos;
     }
 
     size_t i = inicio + prefix_len;
@@ -512,10 +513,11 @@ string Tokenizador::tratar_url(const string& str,const int& inicio) const{
         // 3. Si no es ninguna de las anteriores, es un carácter normal (letra/número)
     }
     // Devolvemos la URL desde la 'h' hasta donde hayamos llegado
-    return str.substr(inicio, i - inicio);
+    //return str.substr(inicio, i - inicio);
+    return i;
 }
 
-string Tokenizador::tratar_decimal(const string& str,const int& inicio,const size_t& primer_sig) const{
+size_t Tokenizador::tratar_decimal(const string& str,const int& inicio,const size_t& primer_sig) const{
     
     size_t i = inicio;
     size_t str_len = str.length();
@@ -523,14 +525,16 @@ string Tokenizador::tratar_decimal(const string& str,const int& inicio,const siz
     for(;i < primer_sig;i++){
         if (!isdigit((unsigned char) str[i])){
             //cout<<"NO ES DECIMAL1"<<endl;
-            return "";
+            //return "";
+            return string::npos;
         }
     }
 
     i = primer_sig+1;
 
     if (i >= str_len || !isdigit(str[i])){ // Si el primer signo se encuentra en el final del string o el siguiente carac ter no es un número
-        return "";
+        //return "";
+        return string::npos;
     }
 
     size_t pos_signo = primer_sig;
@@ -547,7 +551,8 @@ string Tokenizador::tratar_decimal(const string& str,const int& inicio,const siz
                 if (i == pos_signo + 1){ // Dos signos juntos
                     //cout << str[pos_signo]<< " "<< str[i] << endl;
                     //cout<<"NO ES DECIMAL2"<<endl;
-                    return "";
+                    //return "";
+                    return string::npos;
                 }
                 //cout << c << "pos: "<< i<<endl;
                 pos_signo = i;
@@ -556,14 +561,16 @@ string Tokenizador::tratar_decimal(const string& str,const int& inicio,const siz
 
             if (c == '%' || c == '$'){
                 if (i == pos_signo + 1){ // Si el s?mbolo de porcentaje o d?lar est? justo despu?s del separador decimal, no es un n?mero v?lido
-                    return "";
+                    //return "";
+                    return string::npos;
                 }
                 if (i == str_len - 1 || (str[i+1] == ' ' || str[i+1] == '\t' || str[i+1] == '\n' || str[i+1] == '\r')){ // Si el s?mbolo de porcentaje o d?lar no est? al final del token, no es un n?mero v?lido
                     i = i+1;
                     break;
                 }
                 else{
-                    return "";
+                    //return "";
+                    return string::npos;
                 }
             }
 
@@ -577,7 +584,8 @@ string Tokenizador::tratar_decimal(const string& str,const int& inicio,const siz
                 break;
             }
 
-            return ""; // No es un número, es dinstinto de ,.%$ y no es un delimitador.
+            //return ""; // No es un número, es dinstinto de ,.%$ y no es un delimitador.
+            return string::npos;
         }
 
         
@@ -587,18 +595,21 @@ string Tokenizador::tratar_decimal(const string& str,const int& inicio,const siz
         
     }
     
-    return str.substr(inicio, i - inicio);
+    //return str.substr(inicio, i - inicio);
+    return i;
 }
 
-string Tokenizador::tratar_email(const string& str,const int& inicio,const size_t& primer_arroba) const{
+size_t Tokenizador::tratar_email(const string& str,const int& inicio,const size_t& primer_arroba) const{
     if (primer_arroba == (size_t)inicio){ // @ no es el primer caracter
-        return "";
+        //return "";
+        return string::npos;
     }
 
     size_t str_len = str.length();
 
     if (primer_arroba + 1 >= str_len || this->delimitadores[(unsigned char)str[primer_arroba + 1]]) { // @ esta al final de str o está seguido de un delimitador
-        return "";
+        //return "";
+        return string::npos;
     }
 
     size_t i = primer_arroba + 1;
@@ -617,7 +628,8 @@ string Tokenizador::tratar_email(const string& str,const int& inicio,const size_
         }
 
         if (c == '@'){
-            return "";
+            //return "";
+            return string::npos;
         }
 
         if(this->delimitadores[c]){
@@ -628,13 +640,15 @@ string Tokenizador::tratar_email(const string& str,const int& inicio,const size_
             break;
         }
     }
-    return str.substr(inicio, i - inicio);
+    //return str.substr(inicio, i - inicio);
+    return i;
 }
 
-string Tokenizador::tratar_acronimo(const string& str,const int& inicio,const size_t& primer_punto) const{
+size_t Tokenizador::tratar_acronimo(const string& str,const int& inicio,const size_t& primer_punto) const{
 
     if (primer_punto == (size_t)inicio){ //punto en la primera posición
-        return "";
+        //return "";
+        return string::npos;
     }
 
     size_t i = primer_punto + 1;
@@ -662,12 +676,14 @@ string Tokenizador::tratar_acronimo(const string& str,const int& inicio,const si
         }
     }
 
-    return str.substr(inicio, i - inicio);
+    //return str.substr(inicio, i - inicio);
+    return i;
 }
 
-string Tokenizador::tratar_multipalabra(const string& str,const int& inicio,const size_t& primer_guion) const{
+size_t Tokenizador::tratar_multipalabra(const string& str,const int& inicio,const size_t& primer_guion) const{
     if(inicio == (size_t)primer_guion){
-        return "";
+        //return "";
+        return string::npos;
     }
 
     size_t i = primer_guion + 1;
@@ -695,7 +711,8 @@ string Tokenizador::tratar_multipalabra(const string& str,const int& inicio,cons
         }
     }
 
-    return str.substr(inicio, i - inicio);
+    //return str.substr(inicio, i - inicio);
+    return i;
 }
 
 void Tokenizador::Tokenizar (const string& str, list<string>& tokens) const{
@@ -734,7 +751,7 @@ void Tokenizador::Tokenizar (const string& str, list<string>& tokens) const{
 
     for(size_t i = 0; i < longitud; i++){
         unsigned char c = (unsigned char)str_analisis[i];
-        string token = "";
+        size_t token = string::npos;
 
         if (this->delimitadores[c]){
 
@@ -744,46 +761,50 @@ void Tokenizador::Tokenizar (const string& str, list<string>& tokens) const{
                     token = tratar_url(str_analisis, inicio);
                 }
 
-                if (token.empty() && this->DELIMITADOR_DECIMAL[c]){
+                if (token == string::npos && this->DELIMITADOR_DECIMAL[c]){
                     token = tratar_decimal(str_analisis, inicio, i);
-                    if (this->DELIMITADOR_DECIMAL[token[0]]){
-                        token = '0' + token;
+                    if (token != string::npos && this->DELIMITADOR_DECIMAL[str_analisis[inicio]]){
+                        //token = '0' + token;
                         caracter_plus = true;
                     }
                 }
 
-                if (token.empty() && c == '@'){
+                if (token == string::npos && c == '@'){
                     token = tratar_email(str_analisis, inicio, i);
                 }
 
-                if (token.empty() && c == '.'){
+                if (token == string::npos && c == '.'){
                     token = tratar_acronimo(str_analisis, inicio, i);
                 }
 
-                if (token.empty() && c == '-'){
+                if (token == string::npos && c == '-'){
                     token = tratar_multipalabra(str_analisis, inicio, i);
                 }
 
-                if (token.empty()){
+                if (token == string::npos){
                     if (inicio == i){
                         inicio += 1;
                         continue;
                     }
-                    token = str_analisis.substr(inicio, i - inicio); 
-                    tokens.emplace_back(token);
-                    i= inicio + token.size();
+                    //token = str_analisis.substr(inicio, i - inicio); 
+                    tokens.emplace_back(str_analisis.data() + inicio, i - inicio);
+                    //i= token;
                     inicio = i + 1;
                     continue;
                 }
                 else{
-                    tokens.emplace_back(token);
+                    
                     if (caracter_plus){
-                        i = inicio + token.size() - 1;
+                        //i = inicio + token - 1;
+                        string carater_plus_c = "0";
+                        tokens.emplace_back(carater_plus_c.append(str_analisis.data() + inicio, token - inicio));
                         caracter_plus = false;
                     }
                     else{
-                        i = inicio + token.size();
+                        //i = inicio + token.size();
+                        tokens.emplace_back(str_analisis.data() + inicio, token - inicio);
                     }
+                    i= token;
                     inicio = i + 1;
                     continue;
                 }
@@ -793,9 +814,9 @@ void Tokenizador::Tokenizar (const string& str, list<string>& tokens) const{
                     inicio += 1;
                     continue;
                 }
-                token = str_analisis.substr(inicio, i - inicio); 
-                tokens.emplace_back(token);
-                i= inicio + token.size();
+                //token = str_analisis.substr(inicio, i - inicio); 
+                tokens.emplace_back(str_analisis.data() + inicio, i - inicio);
+                //i= inicio + token;
                 inicio = i + 1;
                 continue;
             }
